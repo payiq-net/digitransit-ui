@@ -188,6 +188,7 @@ export default {
   transportModes: {
     citybike: {
       availableForSelection: true,
+      defaultValue: true,
     },
     airplane: {
       availableForSelection: false,

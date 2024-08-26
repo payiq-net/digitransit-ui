@@ -194,6 +194,7 @@ export default {
   transportModes: {
     citybike: {
       availableForSelection: true,
+      defaultValue: true,
     },
   },
 
