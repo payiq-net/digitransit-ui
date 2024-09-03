@@ -47,9 +47,9 @@ export default {
   title: APP_TITLE,
 
   // Navbar logo
-  logo: 'matka/matka-logo.svg',
+  logo: 'payiq/logo.png',
 
-  favicon: './app/configurations/images/matka/matka-favicon.svg',
+  favicon: './app/configurations/images/payiq/favicon.ico',
 
   colors: {
     primary: '#002c74',
