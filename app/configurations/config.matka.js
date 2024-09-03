@@ -26,6 +26,7 @@ export default {
   },
 
   mainMenu: {
+    show: false,
     stopMonitor: {
       show: true,
       url: 'https://matkamonitori.digitransit.fi/createview',
