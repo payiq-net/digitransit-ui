@@ -49,7 +49,7 @@ export default {
   // Navbar logo
   logo: 'payiq/logo.png',
 
-  favicon: './app/configurations/images/payiq/favicon.ico',
+  favicon: './app/configurations/images/payiq/favicon.png',
 
   colors: {
     primary: '#002c74',
