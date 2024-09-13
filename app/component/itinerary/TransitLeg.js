@@ -27,13 +27,14 @@ import {
   PREFIX_ROUTES,
   PREFIX_STOPS,
 } from '../../util/path';
-import { durationToString, timeStr } from '../../util/timeUtils';
+import { durationToString } from '../../util/timeUtils';
 import { addAnalyticsEvent } from '../../util/analyticsUtils';
 import {
   getHeadsignFromRouteLongName,
   getStopHeadsignFromStoptimes,
   getZoneLabel,
   showBikeBoardingNote,
+  legTimeStr,
   legTime,
 } from '../../util/legUtils';
 import { shouldShowFareInfo } from '../../util/fareUtils';
@@ -65,7 +66,13 @@ class TransitLeg extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      showIntermediateStops: props.leg.intermediatePlaces.length < 2,
+      showIntermediateStops:
+        props.interliningLegs.length >= 1
+          ? props.interliningLegs.reduce(
+              (sum, leg) => sum + leg.intermediatePlaces.length,
+              0,
+            ) < 2
+          : props.leg.intermediatePlaces.length < 2,
       showAlternativeLegs: false,
     };
   }
@@ -142,7 +149,7 @@ class TransitLeg extends React.Component {
   renderIntermediate() {
     const { leg, mode, interliningLegs } = this.props;
     if (
-      leg.intermediatePlaces.length > 0 &&
+      (leg.intermediatePlaces.length > 0 || interliningLegs.length > 0) &&
       this.state.showIntermediateStops === true
     ) {
       const places = leg.intermediatePlaces.slice();
@@ -231,14 +238,7 @@ class TransitLeg extends React.Component {
     } = this.props;
     const { config, intl } = this.context;
     const startMs = legTime(leg.start);
-    const originalTime = leg.realTime &&
-      leg.departureDelay &&
-      leg.departureDelay >= config.itinerary.delayThreshold && [
-        <br key="br" />,
-        <span key="time" className="original-time">
-          {timeStr(startMs - leg.departureDelay * 1000)}
-        </span>,
-      ];
+    const time = legTimeStr(leg.start);
     const modeClassName = mode.toLowerCase();
     const LegRouteName = leg.from.name.concat(' - ').concat(leg.to.name);
 
@@ -246,7 +246,7 @@ class TransitLeg extends React.Component {
       <FormattedMessage
         id="itinerary-details.transit-leg-part-1"
         values={{
-          time: timeStr(startMs),
+          time,
           realtime: leg.realTime ? intl.formatMessage({ id: 'realtime' }) : '',
         }}
       />
@@ -255,7 +255,6 @@ class TransitLeg extends React.Component {
       <FormattedMessage
         id="itinerary-details.transit-leg-part-2"
         values={{
-          vehicle: children,
           startStop: leg.from.name,
           startZoneInfo: intl.formatMessage(
             { id: 'zone-info' },
@@ -362,6 +361,8 @@ class TransitLeg extends React.Component {
         <a
           href={`https://www.${notification.link[lang]}`}
           className="disruption-link"
+          target="_blank"
+          rel="noreferrer"
         >
           {createNotification(notification)}
           <Icon
@@ -406,15 +407,23 @@ class TransitLeg extends React.Component {
       <div key={index} className="row itinerary-row">
         <span className="sr-only">{textVersionBeforeLink}</span>
         <div className="small-2 columns itinerary-time-column">
-          <span className="sr-only">{children}</span>
+          <span className="sr-only">
+            <FormattedMessage
+              id={`${this.props.mode}-with-route-number`}
+              values={{
+                routeNumber: leg.route?.shortName,
+                headSign: leg.trip?.tripHeadsign,
+              }}
+              defaultMessage={`${this.props.mode} {routeNumber} {headSign}`}
+            />
+          </span>
           <span aria-hidden="true">
             <div className="itinerary-time-column-time">
               <span className={cx({ realtime: leg.realTime })}>
                 <span className={cx({ canceled: legHasCancelation(leg) })}>
-                  {timeStr(startMs)}
+                  {time}
                 </span>
               </span>
-              {originalTime}
             </div>
             {zoneIcons}
           </span>
@@ -426,7 +435,7 @@ class TransitLeg extends React.Component {
           color={leg.route ? `#${leg.route.color}` : 'currentColor'}
           renderBottomMarker={
             !this.state.showIntermediateStops ||
-            leg.intermediatePlaces.length === 0
+            (leg.intermediatePlaces.length === 0 && interliningLegs.length < 1)
           }
         />
         <div
@@ -503,6 +512,7 @@ class TransitLeg extends React.Component {
             displayTime={this.displayAlternativeLegs()}
             changeHash={this.props.changeHash}
             tabIndex={this.props.tabIndex}
+            isCallAgency={mode === 'call'}
           />
 
           {this.state.showAlternativeLegs &&
@@ -519,6 +529,7 @@ class TransitLeg extends React.Component {
                   l.start / 1000,
                 )}
                 displayTime
+                isCallAgency={mode === 'call'}
               />
             ))}
           {this.displayAlternativeLegs() && (
@@ -575,9 +586,11 @@ class TransitLeg extends React.Component {
           )}
           {routeNotifications}
           <LegAgencyInfo leg={leg} />
+          {children}
           {intermediateStopCount !== 0 && (
             <div className="intermediate-stops-button-container">
-              {leg.intermediatePlaces.length > 1 && (
+              {(leg.intermediatePlaces.length > 1 ||
+                interliningLegs.length >= 1) && (
                 <StopInfo
                   toggleFunction={this.toggleShowIntermediateStops}
                   leg={leg}
@@ -600,7 +613,11 @@ class TransitLeg extends React.Component {
               <div className="disclaimer-container unknown-fare-disclaimer__leg">
                 <div className="description-container">
                   {config.modeDisclaimers[mode][lang].disclaimer}
-                  <a href={config.modeDisclaimers[mode][lang].link}>
+                  <a
+                    href={config.modeDisclaimers[mode][lang].link}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     {config.modeDisclaimers[mode][lang].text}
                   </a>
                 </div>
@@ -654,7 +671,7 @@ TransitLeg.propTypes = {
   index: PropTypes.number.isRequired,
   mode: PropTypes.string.isRequired,
   focusAction: PropTypes.func.isRequired,
-  children: PropTypes.node.isRequired,
+  children: PropTypes.node,
   lang: PropTypes.string.isRequired,
   omitDivider: PropTypes.bool,
   changeHash: PropTypes.func,
@@ -666,6 +683,7 @@ TransitLeg.defaultProps = {
   interliningLegs: [],
   changeHash: undefined,
   tabIndex: undefined,
+  children: undefined,
 };
 
 TransitLeg.contextTypes = {

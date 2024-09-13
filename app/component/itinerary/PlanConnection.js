@@ -13,7 +13,7 @@ const planConnection = graphql`
     $wheelchair: Boolean
     $transferPenalty: Cost
     $bikeSpeed: Speed
-    $allowedBikeRentalNetworks: [String!]
+    $allowedRentalNetworks: [String!]
     $after: String
     $first: Int
     $before: String
@@ -33,7 +33,7 @@ const planConnection = graphql`
         street: {
           bicycle: {
             speed: $bikeSpeed
-            rental: { allowedNetworks: $allowedBikeRentalNetworks }
+            rental: { allowedNetworks: $allowedRentalNetworks }
           }
           walk: {
             speed: $walkSpeed
@@ -59,6 +59,7 @@ const planConnection = graphql`
         ...ItineraryListContainer_planEdges
         node {
           ...ItineraryDetails_itinerary
+          ...Navigator_itinerary
           duration
           walkDistance
           emissionsPerPerson {
@@ -91,6 +92,9 @@ const planConnection = graphql`
               vehicleRentalStation {
                 stationId
               }
+              rentalVehicle {
+                vehicleId
+              }
             }
             to {
               lat
@@ -100,6 +104,7 @@ const planConnection = graphql`
               }
             }
           }
+          end
         }
       }
     }

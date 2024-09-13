@@ -62,9 +62,8 @@ export default configMerger(walttiConfig, {
 
   useTicketIcons: true,
   showTicketInformation: true,
-  ticketInformation: {
-    primaryAgencyName: 'Tampereen seudun joukkoliikenne',
-  },
+  primaryAgencyName: 'Tampereen seudun joukkoliikenne',
+
   ticketLink: 'https://www.nysse.fi/liput-ja-hinnat.html',
 
   callAgencyInfo: {
@@ -232,7 +231,7 @@ export default configMerger(walttiConfig, {
     tampere: tampereTimetables,
   },
 
-  cityBike: {
+  vehicleRental: {
     networks: {
       inurba_tampere: {
         capacity: BIKEAVL_WITHMAX,
@@ -269,6 +268,7 @@ export default configMerger(walttiConfig, {
     },
   },
 
+  // enable train routing for Tampere
   transportModes: {
     rail: {
       availableForSelection: true,
@@ -282,11 +282,16 @@ export default configMerger(walttiConfig, {
       availableForSelection: true,
     },
   },
-  /*
+
   bikeBoardingModes: {
     RAIL: { showNotification: true },
     TRAM: { showNotification: true },
   },
-  */
+
   showTenWeeksOnRouteSchedule: true,
+
+  parkAndRide: {
+    showParkAndRide: true,
+    showParkAndRideForBikes: true,
+  },
 });

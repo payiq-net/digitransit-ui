@@ -356,6 +356,44 @@ export function transitEdges(edges) {
 }
 
 /**
+ * Filters away itineraries that
+ * 1. don't use scooters
+ * 2. only use scooters
+ * 3. use scooters that are not vehicles
+ */
+export function scooterEdges(edges) {
+  if (!edges) {
+    return [];
+  }
+
+  const filteredEdges = [];
+
+  edges.forEach(edge => {
+    let hasScooterLeg = false;
+    let hasNonScooterLeg = false;
+    let allScooterLegsHaveRentalVehicle = true;
+
+    edge.node.legs.forEach(leg => {
+      if (leg.mode === 'SCOOTER' && leg.from.rentalVehicle) {
+        hasScooterLeg = true;
+      } else if (leg.mode !== 'SCOOTER' && leg.mode !== 'WALK') {
+        hasNonScooterLeg = true;
+      }
+
+      if (leg.mode === 'SCOOTER' && !leg.from.rentalVehicle) {
+        allScooterLegsHaveRentalVehicle = false;
+      }
+    });
+
+    if (hasScooterLeg && hasNonScooterLeg && allScooterLegsHaveRentalVehicle) {
+      filteredEdges.push(edge);
+    }
+  });
+
+  return filteredEdges;
+}
+
+/**
  * Filters away plain walk
  */
 export function filterWalk(edges) {
@@ -418,6 +456,44 @@ export function mergeBikeTransitPlans(bikeParkPlan, bikeTransitPlan) {
     ),
     bikeParkItineraryCount: n1,
     bikePublicItineraryCount: n2,
+  };
+}
+
+/**
+ * Combine a scooter edge with the main transit edges.
+ */
+export function mergeScooterTransitPlan(scooterPlan, transitPlan) {
+  const transitPlanEdges = transitPlan.edges || [];
+  const scooterTransitEdges = scooterEdges(scooterPlan.edges);
+  const maxTransitEdges =
+    scooterTransitEdges.length > 0 ? 4 : transitPlanEdges.length;
+
+  // special case: if transitplan only has one walk itinerary, don't show scooter plan if it arrives later.
+  if (
+    transitPlanEdges.length === 1 &&
+    transitPlanEdges[0].node.legs.every(leg => leg.mode === 'WALK') &&
+    transitPlanEdges[0].node.end < scooterTransitEdges[0]?.node.end
+  ) {
+    return transitPlan;
+  }
+
+  return {
+    edges: [
+      ...scooterTransitEdges.slice(0, 1),
+      ...transitPlanEdges.slice(0, maxTransitEdges),
+    ]
+      .sort((a, b) => {
+        return a.node.end > b.node.end;
+      })
+      .map(edge => {
+        return {
+          ...edge,
+          node: {
+            ...edge.node,
+            legs: compressLegs(edge.node.legs),
+          },
+        };
+      }),
   };
 }
 

@@ -3,7 +3,7 @@ import cx from 'classnames';
 import React from 'react';
 import { FormattedMessage, intlShape } from 'react-intl';
 import { legShape, parkShape, configShape } from '../../util/shapes';
-import { legTimeStr } from '../../util/legUtils';
+import { legTimeStr, legDestination } from '../../util/legUtils';
 import { displayDistance } from '../../util/geo-utils';
 import { durationToString } from '../../util/timeUtils';
 import ItineraryCircleLineWithIcon from './ItineraryCircleLineWithIcon';
@@ -19,21 +19,16 @@ const BikeParkLeg = (
     intl.formatNumber,
   );
   const duration = durationToString(leg.duration * 1000);
-  const timeStr = legTimeStr(leg.start);
+  const time = legTimeStr(leg.start);
   return (
     <div key={index} className="row itinerary-row">
       <span className="sr-only">
         <FormattedMessage
           id="itinerary-details.walk-leg"
           values={{
-            time: timeStr,
+            time,
             distance,
-            to: intl.formatMessage({
-              id: `modes.to-${
-                leg.to.stop?.vehicleMode?.toLowerCase() || 'place'
-              }`,
-              defaultMessage: 'modes.to-stop',
-            }),
+            to: legDestination(intl, leg),
             origin: leg.from ? leg.from.name : '',
             destination: leg.to ? leg.to.name : '',
             duration,
@@ -41,7 +36,7 @@ const BikeParkLeg = (
         />
       </span>
       <div className="small-2 columns itinerary-time-column" aria-hidden="true">
-        <div className="itinerary-time-column-time">{timeStr}</div>
+        <div className="itinerary-time-column-time">{time}</div>
       </div>
       <ItineraryCircleLineWithIcon
         bikePark

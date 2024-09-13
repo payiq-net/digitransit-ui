@@ -73,7 +73,11 @@ const StopNearYou = (
             <div style={{ width: '85%' }}>
               <span>{constantOperationStops[stop.gtfsId][locale].text}</span>
               <span style={{ display: 'inline-block' }}>
-                <a href={constantOperationStops[stop.gtfsId][locale].link}>
+                <a
+                  href={constantOperationStops[stop.gtfsId][locale].link}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   {constantOperationStops[stop.gtfsId][locale].link}
                 </a>
               </span>
@@ -124,7 +128,7 @@ const connectedComponent = connectToStores(
   (context, props) => {
     return {
       ...props,
-      currentTime: context.getStore('TimeStore').getCurrentTime().unix(),
+      currentTime: context.getStore('TimeStore').getCurrentTime(),
     };
   },
 );

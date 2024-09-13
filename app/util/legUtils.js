@@ -16,8 +16,9 @@ export function legTime(lt) {
  */
 export function legTimeStr(lt) {
   const t = lt.estimated?.time || lt.scheduledTime;
-  const parts = new Date(t).toTimeString().split(':');
-  return `${parts[0]}:${parts[1]}`;
+  const parts = t.split('T');
+  const time = parts[1].split(':');
+  return `${time[0]}:${time[1]}`;
 }
 
 function filterLegStops(leg, filter) {
@@ -42,8 +43,8 @@ export function isCallAgencyDeparture(departure) {
 function sameBicycleNetwork(leg1, leg2) {
   if (leg1.from.vehicleRentalStation && leg2.from.vehicleRentalStation) {
     return (
-      leg1.from.vehicleRentalStation.network ===
-      leg2.from.vehicleRentalStation.network
+      leg1.from.vehicleRentalStation.rentalNetwork.networkId ===
+      leg2.from.vehicleRentalStation.rentalNetwork.networkId
     );
   }
   return true;
@@ -383,7 +384,7 @@ export function getVehicleAvailabilityIndicatorColor(available, config) {
     // eslint-disable-next-line no-nested-ternary
     available === 0
       ? '#DC0451'
-      : available > config.cityBike.fewAvailableCount
+      : available > config.vehicleRental.fewAvailableCount
         ? '#3B7F00'
         : '#FCBC19'
   );
@@ -395,7 +396,7 @@ export function getVehicleAvailabilityIndicatorColor(available, config) {
  * @param {*} config the configuration for the software installation/
  */
 export function getVehicleAvailabilityTextColor(available, config) {
-  return available <= config.cityBike.fewAvailableCount && available > 0
+  return available <= config.vehicleRental.fewAvailableCount && available > 0
     ? '#333'
     : '#fff';
 }
@@ -412,8 +413,9 @@ export function getLegBadgeProps(leg, config) {
     !leg.rentedBike ||
     !leg.from ||
     !leg.from.vehicleRentalStation ||
-    config.cityBike.capacity === BIKEAVL_UNKNOWN ||
-    leg.mode === 'WALK'
+    config.vehicleRental.capacity === BIKEAVL_UNKNOWN ||
+    leg.mode === 'WALK' ||
+    leg.mode === 'SCOOTER'
   ) {
     return undefined;
   }
@@ -602,4 +604,42 @@ export const showBikeBoardingNote = (leg, config) => {
   return (
     bikeBoardingModes && bikeBoardingModes[leg.mode]?.showNotification === true
   );
+};
+
+/**
+ * Determines whether to leg afrer walk leg contains rental vehicles
+ * @param {object} leg - The leg object.
+ * @param {object} nextLeg - The Leg after the current leg.
+ * @returns {boolean}
+ */
+export const isRental = (leg, nextLeg) =>
+  leg.mode === 'WALK' &&
+  (leg.to.vehicleRentalStation ||
+    leg.to.vehicleRental ||
+    nextLeg?.mode === 'SCOOTER');
+
+/**
+ * Return translated string that describes leg destination
+ *
+ * @param {object} intl - rect-intl context
+ * @param {object} leg - The leg object.
+ * @param {object} secondary - optional walk leg
+ * @returns {string}
+ */
+export const legDestination = (intl, leg, secondary, nextLeg = null) => {
+  const { to } = leg;
+  let id = 'modes.to-place';
+  if (leg.mode === 'BICYCLE' && to.vehicleParking) {
+    id = 'modes.to-bike-park';
+  } else if (leg.mode === 'CAR' && to.vehicleParking) {
+    id = 'modes.to-car-park';
+  }
+  const mode = to.stop?.vehicleMode || secondary?.stop?.vehicleMode;
+  if (mode) {
+    id = `modes.to-${mode.toLowerCase()}`;
+  }
+  if (isRental(leg, nextLeg)) {
+    id = 'modes.from-place';
+  }
+  return intl.formatMessage({ id, defaultMessage: 'place' });
 };

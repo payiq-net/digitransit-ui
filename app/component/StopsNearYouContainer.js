@@ -186,11 +186,11 @@ class StopsNearYouContainer extends React.Component {
     let sortedPatterns;
     if (isCityBikeView) {
       const withNetworks = stopPatterns.filter(pattern => {
-        return !!pattern.node.place?.network;
+        return !!pattern.node.place?.rentalNetwork?.networkId;
       });
       const filteredCityBikeStopPatterns = withNetworks.filter(pattern => {
         return getDefaultNetworks(this.context.config).includes(
-          pattern.node.place?.network,
+          pattern.node.place?.rentalNetwork?.networkId,
         );
       });
       sortedPatterns = filteredCityBikeStopPatterns
@@ -324,7 +324,7 @@ const connectedContainer = connectToStores(
               .map(stop => stop.gtfsId),
           );
     return {
-      currentTime: getStore('TimeStore').getCurrentTime().unix(),
+      currentTime: getStore('TimeStore').getCurrentTime(),
       favouriteIds,
     };
   },
@@ -346,6 +346,7 @@ const refetchContainer = createPaginationContainer(
         after: { type: "String" }
         maxResults: { type: "Int" }
         maxDistance: { type: "Int" }
+        filterByNetwork: { type: "[String!]", defaultValue: null }
       ) {
         nearest(
           lat: $lat
@@ -356,6 +357,7 @@ const refetchContainer = createPaginationContainer(
           after: $after
           maxResults: $maxResults
           maxDistance: $maxDistance
+          filterByNetwork: $filterByNetwork
         ) @connection(key: "StopsNearYouContainer_nearest") {
           edges {
             node {
@@ -365,7 +367,9 @@ const refetchContainer = createPaginationContainer(
                 ... on VehicleRentalStation {
                   ...VehicleRentalStationNearYou_stop
                   stationId
-                  network
+                  rentalNetwork {
+                    networkId
+                  }
                 }
                 ... on Stop {
                   ...StopNearYouContainer_stop
@@ -420,6 +424,7 @@ const refetchContainer = createPaginationContainer(
         $maxDistance: Int!
         $startTime: Long!
         $omitNonPickups: Boolean!
+        $filterByNetwork: [String!]
       ) {
         viewer {
           ...StopsNearYouContainer_stopPatterns
@@ -434,6 +439,7 @@ const refetchContainer = createPaginationContainer(
               after: $after
               maxResults: $maxResults
               maxDistance: $maxDistance
+              filterByNetwork: $filterByNetwork
             )
         }
       }

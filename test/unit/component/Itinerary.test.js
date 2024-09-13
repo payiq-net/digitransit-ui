@@ -53,7 +53,7 @@ describe('<Itinerary />', () => {
     const wrapper = mountWithIntl(<Itinerary {...props} />, {
       context: {
         ...mockContext,
-        config: { CONFIG: 'default', cityBike: { fewAvailableCount: 3 } },
+        config: { CONFIG: 'default', vehicleRental: { fewAvailableCount: 3 } },
       },
       childContextTypes: { ...mockChildContextTypes },
     });
@@ -192,6 +192,8 @@ describe('<Itinerary />', () => {
     const props = {
       ...defaultProps,
       itinerary: {
+        start: new Date((alertEffectiveEndDate + 1) * 1000).toISOString(),
+        end: new Date((alertEffectiveEndDate + 100) * 1000).toISOString(),
         legs: [
           {
             from: {},
@@ -233,6 +235,8 @@ describe('<Itinerary />', () => {
     const props = {
       ...defaultProps,
       itinerary: {
+        start: new Date(1553769600000).toISOString(),
+        end: new Date(1553769601000).toISOString(),
         legs: [
           {
             from: {},
@@ -276,6 +280,8 @@ describe('<Itinerary />', () => {
     const props = {
       ...defaultProps,
       itinerary: {
+        start: new Date(1553769600000).toISOString(),
+        end: new Date(1553769601000).toISOString(),
         legs: [
           {
             from: {},
@@ -310,6 +316,8 @@ describe('<Itinerary />', () => {
     const props = {
       ...defaultProps,
       itinerary: {
+        start: new Date(1553769600000).toISOString(),
+        end: new Date(1553769601000).toISOString(),
         legs: [
           {
             from: {
@@ -348,6 +356,8 @@ describe('<Itinerary />', () => {
     const props = {
       ...defaultProps,
       itinerary: {
+        start: new Date(1553769600000).toISOString(),
+        end: new Date(1553769601000).toISOString(),
         legs: [
           {
             from: {},
@@ -386,6 +396,8 @@ describe('<Itinerary />', () => {
     const props = {
       ...defaultProps,
       itinerary: {
+        start: new Date(1553769600000).toISOString(),
+        end: new Date(1553769601000).toISOString(),
         legs: [
           {
             from: {},

@@ -42,11 +42,22 @@ const getModeFromProps = props => {
   if (props.stop.vehicleMode) {
     return props.stop.vehicleMode.toLowerCase();
   }
+  if (props.scooter) {
+    return 'scooter';
+  }
   return 'stop';
 };
 
 function StopPageMap(
-  { stop, breakpoint, currentTime, locationState, mapLayers, mapLayerOptions },
+  {
+    stop,
+    breakpoint,
+    currentTime,
+    locationState,
+    mapLayers,
+    mapLayerOptions,
+    stopName,
+  },
   { config, match },
 ) {
   if (!stop) {
@@ -134,7 +145,7 @@ function StopPageMap(
   if (breakpoint === 'large') {
     leafletObjs.push(
       <SelectedStopPopup lat={stop.lat} lon={stop.lon} key="SelectedStopPopup">
-        <SelectedStopPopupContent stop={stop} />
+        <SelectedStopPopupContent stop={stop} name={stopName} />
       </SelectedStopPopup>,
     );
     if (config.useCookiesPrompt) {
@@ -222,11 +233,13 @@ StopPageMap.propTypes = {
   mapLayers: mapLayerShape.isRequired,
   mapLayerOptions: mapLayerOptionsShape.isRequired,
   parkType: PropTypes.string,
+  stopName: PropTypes.node,
 };
 
 StopPageMap.defaultProps = {
   stop: undefined,
   parkType: undefined,
+  stopName: undefined,
 };
 
 const componentWithBreakpoint = withBreakpoint(StopPageMap);
@@ -235,11 +248,13 @@ const StopPageMapWithStores = connectToStores(
   componentWithBreakpoint,
   [TimeStore, PositionStore, MapLayerStore],
   ({ config, getStore }, props) => {
-    const currentTime = getStore(TimeStore).getCurrentTime().unix();
+    const currentTime = getStore(TimeStore).getCurrentTime();
     const locationState = getStore(PositionStore).getLocationState();
     const ml = config.showVehiclesOnStopPage ? { notThese: ['vehicles'] } : {};
     if (props.citybike) {
       ml.force = ['citybike']; // show always
+    } else if (props.scooter) {
+      ml.force = ['scooter']; // show always
     } else {
       ml.force = ['terminal'];
     }

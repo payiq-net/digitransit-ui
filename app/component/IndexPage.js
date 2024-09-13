@@ -9,6 +9,7 @@ import DTAutoSuggest from '@digitransit-component/digitransit-component-autosugg
 import DTAutosuggestPanel from '@digitransit-component/digitransit-component-autosuggest-panel';
 import { getModesWithAlerts } from '@digitransit-search-util/digitransit-search-util-query-utils';
 import { createUrl } from '@digitransit-store/digitransit-store-future-route';
+import inside from 'point-in-polygon';
 import { configShape, locationShape } from '../util/shapes';
 import storeOrigin from '../action/originActions';
 import storeDestination from '../action/destinationActions';
@@ -36,6 +37,10 @@ import {
   getNearYouModes,
   useCitybikes,
 } from '../util/modeUtils';
+import {
+  checkPositioningPermission,
+  startLocationWatch,
+} from '../action/PositionActions';
 
 const StopRouteSearch = withSearchContext(DTAutoSuggest);
 const LocationSearch = withSearchContext(DTAutosuggestPanel);
@@ -105,6 +110,16 @@ class IndexPage extends React.Component {
       this.context.executeAction(storeDestination, destination);
     }
 
+    if (this.context.config.startSearchFromUserLocation) {
+      checkPositioningPermission().then(permission => {
+        if (
+          permission.state === 'granted' &&
+          this.props.locationState.status === 'no-location'
+        ) {
+          this.context.executeAction(startLocationWatch);
+        }
+      });
+    }
     scrollTop();
   }
 
@@ -127,6 +142,18 @@ class IndexPage extends React.Component {
 
     const { router, match, config } = this.context;
     const { location } = match;
+
+    const currentLocation =
+      config.startSearchFromUserLocation &&
+      !this.props.origin.address &&
+      this.props.locationState?.hasLocation &&
+      this.props.locationState;
+    if (currentLocation && !currentLocation.isReverseGeocodingInProgress) {
+      const originPoint = [currentLocation.lon, currentLocation.lat];
+      if (inside(originPoint, config.areaPolygon)) {
+        this.context.executeAction(storeOrigin, currentLocation);
+      }
+    }
 
     if (definesItinerarySearch(origin, destination)) {
       const newLocation = {
@@ -159,11 +186,20 @@ class IndexPage extends React.Component {
   }
 
   onSelectStopRoute = item => {
+    addAnalyticsEvent({
+      event: 'route_search',
+      search_action: 'route_or_stop',
+    });
     this.context.router.push(getStopRoutePath(item));
   };
 
   onSelectLocation = (item, id) => {
     const { router, executeAction } = this.context;
+    addAnalyticsEvent({
+      event: 'itinerary_search',
+      search_action: item.type,
+    });
+
     if (item.type === 'FutureRoute') {
       router.push(createUrl(item));
     } else if (id === 'origin') {
@@ -175,9 +211,8 @@ class IndexPage extends React.Component {
 
   clickFavourite = favourite => {
     addAnalyticsEvent({
-      category: 'Favourite',
-      action: 'ClickFavourite',
-      name: null,
+      event: 'favorite_press',
+      favorite_type: 'place',
     });
     this.context.executeAction(storeDestination, favourite);
   };
@@ -192,6 +227,11 @@ class IndexPage extends React.Component {
     if (kbdEvent && !isKeyboardSelectionEvent(kbdEvent)) {
       return;
     }
+    addAnalyticsEvent({
+      event: 'sendMatomoEvent',
+      category: 'nearbyStops',
+      stop_type: url.split('/')[2].toLowerCase(),
+    });
     this.context.router.push(url);
   };
 
@@ -267,7 +307,7 @@ class IndexPage extends React.Component {
       'Stops',
     ];
 
-    if (useCitybikes(config.cityBike?.networks, config)) {
+    if (useCitybikes(config.vehicleRental?.networks, config)) {
       stopAndRouteSearchTargets.push('VehicleRentalStations');
       locationSearchTargets.push('VehicleRentalStations');
     }
@@ -512,10 +552,7 @@ const IndexPageWithStores = connectToStores(
     newProps.origin = origin;
     newProps.destination = destination;
     newProps.lang = context.getStore('PreferencesStore').getLanguage();
-    newProps.currentTime = context
-      .getStore('TimeStore')
-      .getCurrentTime()
-      .unix();
+    newProps.currentTime = context.getStore('TimeStore').getCurrentTime();
     newProps.query = query; // defines itinerary search time & arriveBy
 
     return newProps;

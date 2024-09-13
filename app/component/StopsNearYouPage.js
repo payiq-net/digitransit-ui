@@ -38,8 +38,9 @@ import StopsNearYouMapContainer from './StopsNearYouMapContainer';
 import StopsNearYouFavoritesMapContainer from './StopsNearYouFavoritesMapContainer';
 import { mapLayerShape } from '../store/MapLayerStore';
 import {
-  getVehicleRentalStationNetworkConfig,
-  getVehicleRentalStationNetworkId,
+  getRentalNetworkConfig,
+  getRentalNetworkId,
+  getDefaultNetworks,
 } from '../util/vehicleRentalUtils';
 import { getMapLayerOptions } from '../util/mapLayerUtils';
 import {
@@ -96,7 +97,6 @@ class StopsNearYouPage extends React.Component {
     super(props);
     this.state = {
       phase: PH_START,
-      centerOfMap: null,
       centerOfMapChanged: false,
       showCityBikeTeaser: true,
       searchPosition: {},
@@ -214,9 +214,11 @@ class StopsNearYouPage extends React.Component {
     const { searchPosition } = this.state;
     let placeTypes = ['STOP', 'STATION'];
     let modes = [mode];
+    let allowedNetworks = [];
     if (mode === 'CITYBIKE') {
-      placeTypes = 'BICYCLE_RENT';
+      placeTypes = 'VEHICLE_RENT';
       modes = ['BICYCLE'];
+      allowedNetworks = getDefaultNetworks(this.context.config);
     }
     const prioritizedStops =
       this.context.config.prioritizedStopsNearYou[mode.toLowerCase()] || [];
@@ -232,25 +234,15 @@ class StopsNearYouPage extends React.Component {
       omitNonPickups: this.context.config.omitNonPickups,
       feedIds: this.context.config.feedIds,
       prioritizedStopIds: prioritizedStops,
+      filterByNetwork: allowedNetworks,
     };
   };
 
-  setCenterOfMap = (mapElement, e) => {
+  setCenterOfMap = mapElement => {
     let location;
     if (!mapElement) {
-      if (distance(this.state.searchPosition, this.props.position) > 100) {
-        // user has pressed locate me after moving on the map via the search box
-        return this.setState({
-          centerOfMap: this.props.position,
-          centerOfMapChanged: true,
-        });
-      }
-      return this.setState({
-        centerOfMap: this.props.position,
-        centerOfMapChanged: false,
-      });
-    }
-    if (this.props.breakpoint === 'large') {
+      location = this.props.position;
+    } else if (this.props.breakpoint === 'large') {
       const centerOfMap = mapElement.leafletElement.getCenter();
       location = { lat: centerOfMap.lat, lon: centerOfMap.lng };
     } else {
@@ -265,25 +257,17 @@ class StopsNearYouPage extends React.Component {
       ]);
       location = { lat: point.lat, lon: point.lng };
     }
-    if (distance(location, this.state.searchPosition) > 100) {
-      // user has scrolled over 100 meters on the map
-      if (e || this.state.centerOfMapChanged) {
-        return this.setState({
-          centerOfMap: location,
-          centerOfMapChanged: true,
-        });
-      }
+    this.centerOfMap = location;
+    const changed = distance(location, this.state.searchPosition) > 100;
+    if (changed !== this.state.centerOfMapChanged) {
+      this.setState({ centerOfMapChanged: changed });
     }
-    return this.setState({
-      centerOfMap: location,
-      centerOfMapChanged: false,
-    });
   };
 
   updateLocation = () => {
-    const { centerOfMap } = this.state;
+    const { centerOfMap } = this;
     const { mode } = this.props.match.params;
-    if (centerOfMap && centerOfMap.lat && centerOfMap.lon) {
+    if (centerOfMap?.lat && centerOfMap?.lon) {
       let phase = PH_USEMAPCENTER;
       let type = 'CenterOfMap';
       if (centerOfMap.type === 'CurrentLocation') {
@@ -446,6 +430,7 @@ class StopsNearYouPage extends React.Component {
                 $maxDistance: Int!
                 $omitNonPickups: Boolean!
                 $feedIds: [String!]
+                $filterByNetwork: [String!]
               ) {
                 stopPatterns: viewer {
                   ...StopsNearYouContainer_stopPatterns
@@ -458,6 +443,7 @@ class StopsNearYouPage extends React.Component {
                       maxResults: $maxResults
                       maxDistance: $maxDistance
                       omitNonPickups: $omitNonPickups
+                      filterByNetwork: $filterByNetwork
                     )
                 }
                 alerts: alerts(feeds: $feedIds, severityLevel: [SEVERE]) {
@@ -468,20 +454,18 @@ class StopsNearYouPage extends React.Component {
             variables={this.getQueryVariables(nearByStopMode)}
             environment={this.props.relayEnvironment}
             render={({ props }) => {
-              const { cityBike } = this.context.config;
+              const { vehicleRental } = this.context.config;
               // Use buy instructions if available
-              const cityBikeBuyUrl = cityBike.buyUrl;
+              const cityBikeBuyUrl = vehicleRental.buyUrl;
               const buyInstructions = cityBikeBuyUrl
-                ? cityBike.buyInstructions?.[this.props.lang]
+                ? vehicleRental.buyInstructions?.[this.props.lang]
                 : undefined;
 
               let cityBikeNetworkUrl;
               // Use general information about using city bike, if one network config is available
-              if (Object.keys(cityBike.networks).length === 1) {
-                cityBikeNetworkUrl = getVehicleRentalStationNetworkConfig(
-                  getVehicleRentalStationNetworkId(
-                    Object.keys(cityBike.networks),
-                  ),
+              if (Object.keys(vehicleRental.networks).length === 1) {
+                cityBikeNetworkUrl = getRentalNetworkConfig(
+                  getRentalNetworkId(Object.keys(vehicleRental.networks)),
                   this.context.config,
                 ).url;
               }
@@ -538,6 +522,8 @@ class StopsNearYouPage extends React.Component {
                             <a
                               className="external-link-citybike"
                               href={cityBikeNetworkUrl[this.props.lang]}
+                              target="_blank"
+                              rel="noreferrer"
                             >
                               <FormattedMessage id="citybike-start-using-info" />
                             </a>
@@ -545,6 +531,8 @@ class StopsNearYouPage extends React.Component {
                           {cityBikeBuyUrl && (
                             <a
                               href={cityBikeBuyUrl[this.props.lang]}
+                              target="_blank"
+                              rel="noreferrer"
                               className="disclaimer-close-button-container"
                               tabIndex="0"
                               role="button"
@@ -739,6 +727,7 @@ class StopsNearYouPage extends React.Component {
             $maxDistance: Int!
             $omitNonPickups: Boolean!
             $prioritizedStopIds: [String!]!
+            $filterByNetwork: [String!]
           ) {
             stops: viewer {
               ...StopsNearYouMapContainer_stopsNearYou
@@ -751,6 +740,7 @@ class StopsNearYouPage extends React.Component {
                   maxResults: $maxResults
                   maxDistance: $maxDistance
                   omitNonPickups: $omitNonPickups
+                  filterByNetwork: $filterByNetwork
                 )
             }
             prioritizedStops: stops(ids: $prioritizedStopIds) {
@@ -799,10 +789,10 @@ class StopsNearYouPage extends React.Component {
       ...this.props.match.location,
       pathname: path,
     });
+    this.centerOfMap = null;
     this.setState({
       phase: PH_USEDEFAULTPOS,
       searchPosition: item,
-      centerOfMap: null,
       centerOfMapChanged: false,
     });
   };
@@ -833,7 +823,10 @@ class StopsNearYouPage extends React.Component {
     };
     const targets = ['Locations', 'Stops'];
     if (
-      useCitybikes(this.context.config.cityBike?.networks, this.context.config)
+      useCitybikes(
+        this.context.config.vehicleRental?.networks,
+        this.context.config,
+      )
     ) {
       targets.push('VehicleRentalStations');
     }
@@ -988,7 +981,7 @@ const PositioningWrapper = connectToStores(
       .filter(stop => stop.type === 'station')
       .map(stop => stop.gtfsId);
     let favouriteVehicleStationIds = [];
-    if (useCitybikes(context.config.cityBike?.networks, context.config)) {
+    if (useCitybikes(context.config.vehicleRental?.networks, context.config)) {
       favouriteVehicleStationIds = context
         .getStore('FavouriteStore')
         .getVehicleRentalStations()
@@ -1001,7 +994,7 @@ const PositioningWrapper = connectToStores(
       lang: context.getStore('PreferencesStore').getLanguage(),
       mapLayers: context
         .getStore('MapLayerStore')
-        .getMapLayers({ notThese: ['vehicles'] }),
+        .getMapLayers({ notThese: ['vehicles', 'scooter'] }),
       favouriteStopIds,
       favouriteVehicleStationIds,
       favouriteStationIds,

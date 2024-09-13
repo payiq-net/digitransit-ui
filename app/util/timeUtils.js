@@ -125,7 +125,39 @@ export function getFormattedTimeDate(startTime, pattern) {
 /**
  * Epoch ms to 'hh:mm'
  */
-export function timeStr(ms) {
-  const parts = new Date(ms).toTimeString().split(':');
+export function epochToTime(ms, config) {
+  const time = new Date(ms).toLocaleTimeString('en-GB', {
+    timeZone: config.timeZone,
+  });
+  const parts = time.split(':');
   return `${parts[0]}:${parts[1]}`;
+}
+
+/**
+ * Unix time (from epoch milliseconds if given)
+ */
+export function unixTime(ms) {
+  const t = ms || Date.now();
+  return Math.floor(t / 1000);
+}
+
+/**
+ * Unix to 'YYYYMMDD'
+ */
+export function unixToYYYYMMDD(s, config) {
+  const date = new Date(s * 1000).toLocaleDateString('en-GB', {
+    timeZone: config.timeZone,
+  });
+  const parts = date.split('/');
+  return `${parts[2]}${parts[1]}${parts[0]}`;
+}
+
+/**
+ * ISO-8601/RFC3339 datetime str to 'hh:mm'
+ */
+export function timeStr(dateTime) {
+  // e.g. "2024-06-13T14:30+03:00"
+  const parts = dateTime.split('T');
+  const time = parts[1].split(':');
+  return `${time[0]}:${time[1]}`;
 }

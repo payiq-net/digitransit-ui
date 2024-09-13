@@ -29,8 +29,8 @@ import withBreakpoint from '../../util/withBreakpoint';
 import { isKeyboardSelectionEvent } from '../../util/browser';
 import {
   BIKEAVL_UNKNOWN,
-  getVehicleRentalStationNetworkIcon,
-  getVehicleRentalStationNetworkConfig,
+  getRentalNetworkIcon,
+  getRentalNetworkConfig,
   getVehicleCapacity,
 } from '../../util/vehicleRentalUtils';
 import { getRouteMode } from '../../util/modeUtils';
@@ -173,12 +173,14 @@ export const ModeLeg = (
   ) {
     networkIcon =
       leg.from.vehicleRentalStation &&
-      getVehicleRentalStationNetworkIcon(
-        getVehicleRentalStationNetworkConfig(
-          leg.from.vehicleRentalStation.network,
+      getRentalNetworkIcon(
+        getRentalNetworkConfig(
+          leg.from.vehicleRentalStation.rentalNetwork.networkId,
           config,
         ),
       );
+  } else if (mode === 'SCOOTER') {
+    networkIcon = 'icon-icon_scooter_rider';
   }
   const routeNumber = (
     <RouteNumber
@@ -268,6 +270,7 @@ const Itinerary = (
   { intl, intl: { formatMessage }, config },
 ) => {
   const isTransitLeg = leg => leg.transitLeg;
+  const isTransitOrRentalLeg = leg => leg.transitLeg || leg.rentedBike;
   const isLegOnFoot = leg => leg.mode === 'WALK' || leg.mode === 'BICYCLE_WALK';
   const usingOwnBicycle = itinerary.legs.some(
     leg => getLegMode(leg) === 'BICYCLE' && leg.rentedBike === false,
@@ -277,8 +280,8 @@ const Itinerary = (
   const { refTime } = props;
   const startTime = Date.parse(itinerary.start);
   const endTime = Date.parse(itinerary.end);
-  const departureTime = timeStr(startTime);
-  const arrivalTime = timeStr(endTime);
+  const departureTime = timeStr(itinerary.start);
+  const arrivalTime = timeStr(itinerary.end);
   const duration = endTime - startTime;
   const co2value = getCo2Value(itinerary);
   const mobile = bp => !(bp === 'large');
@@ -289,6 +292,7 @@ const Itinerary = (
   }));
   let intermediateSlack = 0;
   let transitLegCount = 0;
+  let containsScooterLeg = false;
   compressedLegs.forEach((leg, i) => {
     if (isTransitLeg(leg)) {
       noTransitLegs = false;
@@ -301,6 +305,7 @@ const Itinerary = (
       intermediateSlack +=
         legTime(leg.start) - legTime(compressedLegs[i - 1].end); // calculate time spent at each intermediate place
     }
+    containsScooterLeg = leg.mode === 'SCOOTER' || containsScooterLeg;
   });
   const durationWithoutSlack = duration - intermediateSlack; // don't include time spent at intermediate places in calculations for bar lengths
   const relativeLength = durationMs =>
@@ -426,23 +431,23 @@ const Itinerary = (
     ) {
       const bikingTime = Math.floor(leg.duration / 60);
       // eslint-disable-next-line prefer-destructuring
-      bikeNetwork = leg.from.vehicleRentalStation.network;
+      bikeNetwork = leg.from.vehicleRentalStation.rentalNetwork.networkId;
       if (
-        config.cityBike.networks &&
-        config.cityBike.networks[bikeNetwork]?.timeBeforeSurcharge &&
-        config.cityBike.networks[bikeNetwork]?.durationInstructions
+        config.vehicleRental.networks &&
+        config.vehicleRental.networks[bikeNetwork]?.timeBeforeSurcharge &&
+        config.vehicleRental.networks[bikeNetwork]?.durationInstructions
       ) {
         const rentDurationOverSurchargeLimit =
           leg.duration >
-          config.cityBike?.networks[bikeNetwork].timeBeforeSurcharge;
+          config.vehicleRental?.networks[bikeNetwork].timeBeforeSurcharge;
         if (rentDurationOverSurchargeLimit) {
           citybikeNetworks.add(bikeNetwork);
         }
         showRentalBikeDurationWarning =
           showRentalBikeDurationWarning || rentDurationOverSurchargeLimit;
         if (!citybikeicon) {
-          citybikeicon = getVehicleRentalStationNetworkIcon(
-            getVehicleRentalStationNetworkConfig(bikeNetwork, config),
+          citybikeicon = getRentalNetworkIcon(
+            getRentalNetworkConfig(bikeNetwork, config),
           );
         }
       }
@@ -458,6 +463,32 @@ const Itinerary = (
           large={breakpoint === 'large'}
         />,
       );
+      vehicleNames.push(
+        formatMessage({
+          id: `to-bicycle`,
+        }),
+      );
+      stopNames.push(leg.from.name);
+    } else if (leg.mode === 'SCOOTER' && leg.rentedBike) {
+      const scooterDuration = Math.floor(leg.duration / 60);
+      legs.push(
+        <ModeLeg
+          key={`${leg.mode}_${leg.start.scheduledTime}`}
+          isTransitLeg={false}
+          renderModeIcons={renderModeIcons}
+          leg={leg}
+          duration={scooterDuration}
+          mode="SCOOTER"
+          legLength={legLength}
+          large={breakpoint === 'large'}
+        />,
+      );
+      vehicleNames.push(
+        formatMessage({
+          id: `to-e-scooter`,
+        }),
+      );
+      stopNames.push('');
     } else if (leg.mode === 'CAR') {
       const drivingTime = Math.floor(leg.duration / 60);
       legs.push(
@@ -627,7 +658,7 @@ const Itinerary = (
           <div>
             {getVehicleCapacity(
               config,
-              firstDeparture.from.vehicleRentalStation.network,
+              firstDeparture.from.vehicleRentalStation.rentalNetwork.networkId,
             ) !== BIKEAVL_UNKNOWN && (
               <FormattedMessage
                 id="bikes-available"
@@ -691,6 +722,17 @@ const Itinerary = (
   ]);
 
   //  accessible representation for summary
+  const firstDepartureWithRentals = compressedLegs.find(isTransitOrRentalLeg);
+  firstDeparture = firstDepartureWithRentals?.rentedBike
+    ? firstDepartureWithRentals
+    : firstDeparture;
+  const rentalLabelId =
+    firstDeparture?.mode.toLowerCase() === 'scooter'
+      ? 'itinerary-summary-row.first-leg-start-time-scooter'
+      : 'itinerary-summary-row.first-leg-start-time-citybike';
+  const firstDepartureLabelId = firstDepartureWithRentals?.rentedBike
+    ? rentalLabelId
+    : 'itinerary-summary-row.first-departure';
   const textSummary = (
     <div className="sr-only" key="screenReader">
       <FormattedMessage
@@ -702,11 +744,13 @@ const Itinerary = (
           arrivalTime,
           firstDeparture: vehicleNames.length && firstDeparture && (
             <FormattedMessage
-              id="itinerary-summary-row.first-departure"
+              id={firstDepartureLabelId}
               values={{
                 vehicle: vehicleNames[0],
                 departureTime: legTimeStr(firstDeparture.start),
+                firstDepartureTime: legTimeStr(firstDeparture.start), // vehicle rental start time
                 stopName: stopNames[0],
+                firstDepartureStop: stopNames[0], // vehicle rental stop name
               }}
             />
           ),
@@ -715,7 +759,11 @@ const Itinerary = (
               return null;
             }
             return formatMessage(
-              { id: 'itinerary-summary-row.transfers' },
+              {
+                id: stopNames[index]
+                  ? 'itinerary-summary-row.transfers'
+                  : 'itinerary-summary-row.transfers-to-rental',
+              },
               {
                 vehicle: name,
                 stopName: stopNames[index],
@@ -762,6 +810,11 @@ const Itinerary = (
   ) : (
     date
   );
+  const showCo2Info =
+    config.showCO2InItinerarySummary &&
+    co2value !== null &&
+    co2value >= 0 &&
+    !containsScooterLeg;
   return (
     <span role="listitem" className={classes} aria-atomic="true">
       <h3 className="sr-only">
@@ -773,10 +826,7 @@ const Itinerary = (
         />
       </h3>
       {textSummary}
-      {config.showCO2InItinerarySummary &&
-        co2value !== null &&
-        co2value >= 0 &&
-        co2summary}
+      {showCo2Info && co2summary}
       <div className="itinerary-summary-visible" style={{ display: 'flex' }}>
         {/* This next clickable region does not have proper accessible role, tabindex and keyboard handler
             because screen reader works weirdly with nested buttons. Same functonality works from the inner button */
@@ -820,16 +870,14 @@ const Itinerary = (
                   {(getTotalDistance(itinerary) / 1000).toFixed(1)} km
                 </div>
               )}
-              {config.showCO2InItinerarySummary &&
-                co2value !== null &&
-                co2value >= 0 && (
-                  <div className="itinerary-co2-value-container">
-                    {lowestCo2value === co2value && (
-                      <Icon img="icon-icon_co2_leaf" className="co2-leaf" />
-                    )}
-                    <div className="itinerary-co2-value">{co2value} g</div>
-                  </div>
-                )}
+              {showCo2Info && (
+                <div className="itinerary-co2-value-container">
+                  {lowestCo2value === co2value && (
+                    <Icon img="icon-icon_co2_leaf" className="co2-leaf" />
+                  )}
+                  <div className="itinerary-co2-value">{co2value} g</div>
+                </div>
+              )}
               <div className="itinerary-duration">
                 <RelativeDuration duration={duration} />
               </div>
@@ -862,7 +910,7 @@ const Itinerary = (
                     id="citybike-duration-info-short"
                     values={{
                       duration:
-                        config.cityBike.networks[bikeNetwork]
+                        config.vehicleRental.networks[bikeNetwork]
                           .timeBeforeSurcharge / 60,
                     }}
                     defaultMessage=""
@@ -1017,7 +1065,9 @@ const containerComponent = createFragmentContainer(ItineraryWithBreakpoint, {
             availableVehicles {
               total
             }
-            network
+            rentalNetwork {
+              networkId
+            }
           }
         }
         to {

@@ -36,7 +36,6 @@ export default {
 
   availableLanguages: ['fi', 'sv', 'en'],
   defaultLanguage: 'fi',
-  hideAppBarLink: true,
 
   socialMedia: {
     title: APP_TITLE,
@@ -63,6 +62,7 @@ export default {
       'mode-ferry-pier': '#666666',
       'mode-citybike': '#FCBC19',
       'mode-citybike-secondary': '#333333',
+      'mode-scooter': '#BABABA',
     },
   },
   feedIds: [
@@ -90,6 +90,7 @@ export default {
     'Raasepori',
     'VARELY',
     'Harma',
+    'PohjolanMatka',
   ],
 
   additionalFeedIds: {
@@ -164,19 +165,17 @@ export default {
   },
   suggestBikeMaxDistance: 2000000,
 
-  cityBike: {
+  vehicleRental: {
     useAllSeasons: true,
     networks: {
-      smoove: HSLConfig.cityBike.networks.smoove,
-      vantaa: HSLConfig.cityBike.networks.vantaa,
-      seatcode_tampere: TampereConfig.cityBike.networks.seatcode_tampere,
-      turku: TurkuConfig.cityBike.networks.donkey_turku,
-      freebike_kuopio: KuopioConfig.cityBike.networks.freebike_kuopio,
-      freebike_lahti: LahtiConfig.cityBike.networks.freebike_lahti,
-      donkey_lappeenranta:
-        LappeenrantaConfig.cityBike.networks.donkey_lappeenranta,
-      donkey_kotka: KotkaConfig.cityBike.networks.donkey_kotka,
-      donkey_kouvola: KouvolaConfig.cityBike.networks.donkey_kouvola,
+      ...HSLConfig.vehicleRental.networks,
+      ...TampereConfig.vehicleRental.networks,
+      ...TurkuConfig.vehicleRental.networks,
+      ...KuopioConfig.vehicleRental.networks,
+      ...LahtiConfig.vehicleRental.networks,
+      ...LappeenrantaConfig.vehicleRental.networks,
+      ...KotkaConfig.vehicleRental.networks,
+      ...KouvolaConfig.vehicleRental.networks,
     },
   },
 
@@ -196,6 +195,10 @@ export default {
     citybike: {
       availableForSelection: true,
       defaultValue: true,
+    },
+    scooter: {
+      availableForSelection: true,
+      defaultValue: false,
     },
   },
 
@@ -256,7 +259,8 @@ export default {
   parkingAreaSources: ['liipi'],
 
   parkAndRide: {
-    showParkAndRide: false,
+    showParkAndRide: true,
+    showParkAndRideForBikes: true,
     parkAndRideMinZoom: 13,
     pageContent: {
       default: HSLParkAndRideUtils,
@@ -387,4 +391,33 @@ export default {
   },
   // Include both bike and park and bike and public, if bike is enabled
   includePublicWithBikePlan: true,
+
+  startSearchFromUserLocation: true,
+
+  minTransferTimeSelection: [
+    {
+      title: '1.5 min',
+      value: 90,
+    },
+    {
+      title: '3 min',
+      value: 180,
+    },
+    {
+      title: '5 min',
+      value: 300,
+    },
+    {
+      title: '7 min',
+      value: 420,
+    },
+    {
+      title: '10 min',
+      value: 600,
+    },
+    {
+      title: '30 min',
+      value: 1800,
+    },
+  ],
 };

@@ -14,7 +14,7 @@ const HSLParkAndRideUtils = require('../util/ParkAndRideUtils').default.HSL;
 const rootLink = process.env.ROOTLINK || 'https://test.hslfi.hsldev.com';
 const BANNER_URL =
   process.env.BANNER_URL ||
-  'https://test-api.hslfi.hsldev.com/api/v1/banners?site=JourneyPlanner';
+  'https://cms-test.hslfi.hsldev.com/api/v1/banners?site=JourneyPlanner';
 // 'https://content.hsl.fi/api/v1/banners?site=JourneyPlanner';
 const localStorageEmitter =
   process.env.USE_EMITTER && rootLink + '/local-storage-emitter';
@@ -33,6 +33,12 @@ export default {
     },
     REALTIME_RENTAL_STATION_MAP: {
       default: `${POI_MAP_PREFIX}/fi/realtimeRentalStations/`,
+    },
+    RENTAL_VEHICLE_MAP: {
+      default: `${POI_MAP_PREFIX}/fi/rentalVehicles/`,
+    },
+    REALTIME_RENTAL_VEHICLE_MAP: {
+      default: `${POI_MAP_PREFIX}/fi/realtimeRentalVehicles/`,
     },
     PARK_AND_RIDE_MAP: {
       default: `${POI_MAP_PREFIX}/en/vehicleParking/`,
@@ -190,6 +196,11 @@ export default {
       availableForSelection: true,
       defaultValue: true,
     },
+    scooter: {
+      availableForSelection: true,
+      defaultValue: false,
+      showIfSelectedForRouting: true,
+    },
     airplane: {
       availableForSelection: false,
       defaultValue: false,
@@ -289,8 +300,10 @@ export default {
 
   hideExternalOperator: agency => agency.name === 'Helsingin seudun liikenne',
   showTicketInformation: true,
-  ticketInformation: {
-    primaryAgencyName: 'HSL',
+  primaryAgencyName: {
+    fi: 'HSL',
+    sv: 'HRT',
+    en: 'HSL',
   },
 
   maxNearbyStopAmount: 5,
@@ -389,8 +402,6 @@ export default {
     showLayerSelector: false,
     showStopMarkerPopupOnMobile: false,
     showScaleBar: true,
-    attribution:
-      '<a tabindex="-1" href="http://osm.org/copyright">© OpenStreetMap</a>',
     // areBounds is for keeping map and user inside given area
     // HSL region + Lahti
     areaBounds: {
@@ -420,7 +431,7 @@ export default {
 
   localStorageEmitter,
 
-  cityBike: {
+  vehicleRental: {
     minZoomStopsNearYou: 10,
     showFullInfo: true,
     networks: {
@@ -451,6 +462,7 @@ export default {
           en: 'https://www.hsl.fi/en/citybikes/helsinki/instructions#ride',
         },
         timeBeforeSurcharge: 60 * 60,
+        showRentalStations: true,
       },
       vantaa: {
         enabled: true,
@@ -478,6 +490,22 @@ export default {
           en: 'https://www.hsl.fi/en/citybikes/vantaa/instructions#ride',
         },
         timeBeforeSurcharge: 120 * 60,
+        showRentalStations: true,
+      },
+      bolt_helsinki: {
+        enabled: true,
+        season: {
+          alwaysOn: true,
+        },
+        icon: 'scooter',
+        name: {
+          fi: 'Bolt',
+          sv: 'Bolt',
+          en: 'Bolt',
+        },
+        type: 'scooter',
+        showRentalVehicles: true,
+        showRentalStations: false,
       },
     },
     buyUrl: {
@@ -531,8 +559,9 @@ export default {
   },
 
   showSimilarRoutesOnRouteDropDown: true,
-
   useRealtimeTravellerCapacities: true,
+
+  navigation: true,
 
   stopCard: {
     header: {
@@ -701,4 +730,6 @@ export default {
       },
     },
   },
+
+  startSearchFromUserLocation: true,
 };

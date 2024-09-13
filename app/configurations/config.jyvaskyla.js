@@ -139,7 +139,7 @@ export default configMerger(walttiConfig, {
           sv: 'Zoner',
           en: 'Zones',
         },
-        url: '/assets/geojson/jkl_zone_lines_20210222.geojson',
+        url: '/assets/geojson/jkl_zone_lines_20240531.geojson',
       },
       {
         name: {
@@ -158,13 +158,20 @@ export default configMerger(walttiConfig, {
     1: 'A',
     2: 'B',
     3: 'C',
-    4: 'D',
   },
 
-  showTicketInformation: false,
+  showTicketInformation: true,
   useTicketIcons: true,
   ticketLink: 'https://linkki.jyvaskyla.fi/liput-ja-hinnat',
-  showTicketPrice: false,
+  showTicketPrice: true,
+
+  showTicketLinkOnlyWhenTesting: true,
+  settingsForFeatureTesting: {
+    walkSpeed: 0.69,
+    bikeSpeed: 8.33,
+    includeBikeSuggestions: false,
+    transferPenalty: 1600,
+  },
 
   ticketPurchaseLink: function purchaseTicketLink(fare) {
     const fareId = fare.fareProducts[0].product.id;
@@ -176,7 +183,7 @@ export default configMerger(walttiConfig, {
     for (let i = 0; i < ticket.length; i++) {
       zones += `0${ticket.charCodeAt(i) - 64}`; // eslint-disable
     }
-    return `https://kauppa.waltti.fi/walttiappfeat/busTicket/?operator=50209&ticketType=single&customerGroup=adult&zones=${zones}`;
+    return `https://waltti.fi/walttiappfeat/busTicket/?operator=50209&ticketType=single&customerGroup=adult&zones=${zones}`;
   },
 
   fareMapping: function mapFareId(fareId) {
@@ -217,5 +224,5 @@ export default configMerger(walttiConfig, {
     itinerary: true,
   },
   // Notice! Turning on this setting forces the search for car routes (for the CO2 comparison only).
-  showCO2InItinerarySummary: false,
+  showCO2InItinerarySummary: true,
 });

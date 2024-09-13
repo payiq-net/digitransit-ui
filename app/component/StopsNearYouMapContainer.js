@@ -10,7 +10,7 @@ const StopsNearYouMapWithStores = connectToStores(
   StopsNearYouMap,
   [TimeStore, PreferencesStore, FavouriteStore],
   ({ getStore }, { match }) => {
-    const currentTime = getStore(TimeStore).getCurrentTime().unix();
+    const currentTime = getStore(TimeStore).getCurrentTime();
     const language = getStore(PreferencesStore).getLanguage();
     const favouriteIds =
       match.params.mode === 'CITYBIKE'
@@ -48,6 +48,7 @@ const containerComponent = createPaginationContainer(
         after: { type: "String" }
         maxResults: { type: "Int" }
         maxDistance: { type: "Int" }
+        filterByNetwork: { type: "[String!]", defaultValue: null }
       ) {
         nearest(
           lat: $lat
@@ -58,6 +59,7 @@ const containerComponent = createPaginationContainer(
           after: $after
           maxResults: $maxResults
           maxDistance: $maxDistance
+          filterByNetwork: $filterByNetwork
         ) @connection(key: "StopsNearYouMapContainer_nearest") {
           edges {
             node {
@@ -69,7 +71,9 @@ const containerComponent = createPaginationContainer(
                   lat
                   lon
                   stationId
-                  network
+                  rentalNetwork {
+                    networkId
+                  }
                 }
                 ... on Stop {
                   gtfsId
@@ -187,6 +191,7 @@ const containerComponent = createPaginationContainer(
         $maxDistance: Int!
         $startTime: Long!
         $omitNonPickups: Boolean!
+        $filterByNetwork: [String!]
       ) {
         viewer {
           ...StopsNearYouMapContainer_stopsNearYou
@@ -201,6 +206,7 @@ const containerComponent = createPaginationContainer(
               after: $after
               maxResults: $maxResults
               maxDistance: $maxDistance
+              filterByNetwork: $filterByNetwork
             )
         }
       }

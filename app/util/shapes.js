@@ -94,9 +94,28 @@ export const parkShape = PropTypes.shape({
 export const vehicleRentalStationShape = PropTypes.shape({
   availableVehicles: PropTypes.shape({ total: PropTypes.number }),
   availableSpaces: PropTypes.shape({ total: PropTypes.number }),
-  network: PropTypes.string,
+  rentalNetwork: PropTypes.shape({
+    networkId: PropTypes.string,
+  }),
   capacity: PropTypes.number,
   operative: PropTypes.bool,
+});
+
+export const rentalVehicleShape = PropTypes.shape({
+  id: PropTypes.string,
+  vehicleId: PropTypes.string,
+  name: PropTypes.string,
+  lat: PropTypes.number,
+  lon: PropTypes.number,
+  rentalUris: PropTypes.shape({
+    android: PropTypes.string,
+    ios: PropTypes.string,
+    web: PropTypes.string,
+  }),
+  rentalNetwork: PropTypes.shape({
+    url: PropTypes.string,
+    networkId: PropTypes.string,
+  }),
 });
 
 export const routeShape = PropTypes.shape({
@@ -204,11 +223,13 @@ export const legShape = PropTypes.shape({
     name: PropTypes.string,
     stop: stopShape,
     vehicleRentalStation: vehicleRentalStationShape,
+    rentalVehicle: rentalVehicleShape,
   }),
   to: PropTypes.shape({
     name: PropTypes.string,
     stop: stopShape,
     vehicleRentalStation: vehicleRentalStationShape,
+
     bikePark: parkShape,
     carPark: parkShape,
   }),
@@ -381,3 +402,10 @@ export const vehicleShape = PropTypes.shape({
   heading: PropTypes.number,
   headsign: PropTypes.string,
 });
+
+export const minTransferTimeShape = PropTypes.arrayOf(
+  PropTypes.shape({
+    title: PropTypes.string,
+    value: PropTypes.number,
+  }),
+);
