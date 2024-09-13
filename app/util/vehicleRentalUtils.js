@@ -90,6 +90,14 @@ export const getVehicleCapacity = (config, network = undefined) => {
     config.cityBike?.networks[network]?.capacity || config.cityBike.capacity
   );
 };
+
+const defaultRentalStationNetworks = config => {
+  if (config?.transportModes.citybike.defaultValue) {
+    return getDefaultNetworks(config);
+  }
+  return [];
+};
+
 /**
  * Retrieves all chosen citybike networks from the
  * localstorage
@@ -99,10 +107,7 @@ export const getVehicleCapacity = (config, network = undefined) => {
 
 export const getVehicleRentalStationNetworks = config => {
   const { allowedBikeRentalNetworks } = getCustomizedSettings();
-  return allowedBikeRentalNetworks ||
-    config?.transportModes.citybike.defaultValue
-    ? getDefaultNetworks(config)
-    : [];
+  return allowedBikeRentalNetworks || defaultRentalStationNetworks(config);
 };
 
 const addAnalytics = (action, name) => {
