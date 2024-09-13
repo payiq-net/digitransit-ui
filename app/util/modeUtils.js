@@ -144,7 +144,7 @@ export function getAvailableTransportModeConfigs(config) {
 export function getTransitModes(config) {
   return getAvailableTransportModeConfigs(config)
     .filter(
-      tm => tm.defaultValue && tm.name !== 'scooter' && tm.name !== 'citybike',
+      tm => tm.defaultValue && tm.name !== 'SCOOTER' && tm.name !== 'CITYBIKE',
     )
     .map(tm => tm.name)
     .sort();
