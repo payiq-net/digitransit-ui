@@ -1,6 +1,5 @@
 import PropTypes from 'prop-types';
 import React from 'react';
-import xor from 'lodash/xor';
 import { configShape } from '../../../util/shapes';
 import Toggle from '../../Toggle';
 import { saveRoutingSettings } from '../../../action/SearchSettingsActions';
@@ -12,8 +11,6 @@ import {
   updateVehicleNetworks,
   getVehicleRentalStationNetworks,
 } from '../../../util/vehicleRentalUtils';
-import { getModes } from '../../../util/modeUtils';
-import { TransportMode } from '../../../constants';
 
 const VehicleRentalStationNetworkSelector = (
   { currentOptions },
@@ -58,15 +55,7 @@ const VehicleRentalStationNetworkSelector = (
                 getVehicleRentalStationNetworks(config),
                 network.networkName,
               );
-              const modes = getModes(config);
               const newSettings = { allowedBikeRentalNetworks: newNetworks };
-              if (newNetworks.length > 0) {
-                if (modes.indexOf(TransportMode.Citybike) === -1) {
-                  newSettings.modes = xor(modes, [TransportMode.Citybike]);
-                }
-              } else if (modes.indexOf(TransportMode.Citybike) !== -1) {
-                newSettings.modes = xor(modes, [TransportMode.Citybike]);
-              }
               executeAction(saveRoutingSettings, newSettings);
             }}
           />
